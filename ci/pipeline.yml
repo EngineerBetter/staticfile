@@ -1,0 +1,31 @@
+resources:
+- name: staticfile-buildpack
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/EngineerBetter/staticfile.git
+
+jobs:
+- name: set-pipeline
+  serial: true
+  plan:
+  - get: staticfile-buildpack
+    trigger: true
+  - set_pipeline: self
+    file: staticfile-buildpack/ci/pipeline.yml
+
+- name: build-staticfile-buildpack
+  plan:
+  - get: staticfile-buildpack
+    trigger: true
+    passed:
+    - set-pipeline
+  - task: package-buildpack
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: ubuntu
+      run:
+        path: ./scripts/package.sh
