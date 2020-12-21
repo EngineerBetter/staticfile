@@ -4,6 +4,7 @@ resources:
   icon: github
   source:
     uri: https://github.com/EngineerBetter/staticfile.git
+    tag_filter: v*.*.*
 
 jobs:
 - name: set-pipeline
@@ -26,6 +27,34 @@ jobs:
       image_resource:
         type: registry-image
         source:
-          repository: ubuntu
+          repository: engineerbetter/pcf-ops
+      inputs:
+      - name: staticfile-buildpack
+      outputs:
+      - name: staticfile-buildpack
       run:
-        path: ./scripts/package.sh
+        dir: staticfile-buildpack
+        path: bash
+        args:
+        - euo
+        - pipefail
+        - -c
+        - |
+          scripts/package.sh --version "$(.git/ref)"
+  - task: push-staticfile-buildpack-image
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: ananace/skopeo
+      inputs:
+      - name: staticfile-buildpack
+      run:
+        path: skopeo
+        args:
+        - copy
+        - oci-archive:staticfile-buildpack/build/buildpackage.cnb
+        - docker://engineerbetter/staticfile-buildpack
+        - --dest-creds
+        - ((dockerhub_user)):((dockerhub_password))
