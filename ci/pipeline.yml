@@ -21,6 +21,8 @@ jobs:
     trigger: true
     passed:
     - set-pipeline
+  - load_var: tag
+    file: staticfile-buildpack/.git/ref
   - task: package-buildpack
     config:
       platform: linux
@@ -34,13 +36,8 @@ jobs:
       - name: staticfile-buildpack
       run:
         dir: staticfile-buildpack
-        path: bash
-        args:
-        - euo
-        - pipefail
-        - -c
-        - |
-          scripts/package.sh --version "$(.git/ref)"
+        path: scripts/package.sh
+        args: [--version, ((.:tag))]
   - task: push-staticfile-buildpack-image
     config:
       platform: linux
@@ -55,6 +52,6 @@ jobs:
         args:
         - copy
         - oci-archive:staticfile-buildpack/build/buildpackage.cnb
-        - docker://engineerbetter/staticfile-buildpack
+        - docker://engineerbetter/staticfile-buildpack:((.:tag))
         - --dest-creds
         - ((dockerhub_user)):((dockerhub_password))
